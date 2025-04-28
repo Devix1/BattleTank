@@ -1,14 +1,15 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "Renderer/ShaderProgram.h"
 
 using namespace std;
 
 // Вершины треугольника
 GLfloat points[] = {
-     0.0f,  0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-    -0.5f, -0.5f, 0.0f
+    0.0f,  0.5f, 0.0f,
+    0.5f, -0.5f, 0.0f,
+   -0.5f, -0.5f, 0.0f
 };
 
 // Цвета для каждой вершины
@@ -43,12 +44,14 @@ void main() {
 int WindowWidth = 640;
 int WindowHeight = 480;
 
+// Обработка изменения размера окна
 void windowSizeCallback(GLFWwindow* window, int width, int height) {
     WindowWidth = width;
     WindowHeight = height;
     glViewport(0, 0, WindowWidth, WindowHeight);
 }
 
+// Обработка нажатий клавиш
 void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GL_TRUE);
@@ -57,7 +60,7 @@ void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int 
 
 int main() {
     if (!glfwInit()) {
-        cout << "glfwInit failed" << endl;
+        cerr << "Failed to initialize GLFW" << endl;
         return -1;
     }
 
@@ -67,17 +70,18 @@ int main() {
 
     GLFWwindow* window = glfwCreateWindow(WindowWidth, WindowHeight, "Battle Tanks", nullptr, nullptr);
     if (!window) {
-        cout << "glfwCreateWindow failed" << endl;
+        cerr << "Failed to create GLFW window" << endl;
         glfwTerminate();
         return -1;
     }
 
+    glfwMakeContextCurrent(window);
     glfwSetWindowSizeCallback(window, windowSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
-    glfwMakeContextCurrent(window);
 
     if (!gladLoadGL()) {
-        cout << "Can't load GLAD" << endl;
+        cerr << "Failed to initialize GLAD" << endl;
+        glfwTerminate();
         return -1;
     }
 
@@ -90,31 +94,22 @@ int main() {
     cout << "OpenGL version (parsed): " << major << "." << minor << endl;
     cout << "Press Escape to exit" << endl;
 
-    glClearColor(1, 1, 0, 1); // Жёлтый фон
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f); // Жёлтый фон
 
-    // Компиляция шейдеров
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
+    // Создание шейдерной программы
+    Renderer::ShaderProgram shaderProgram(vertexShaderSource, fragmentShaderSource);
 
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
+    if (!shaderProgram.isComplete()) {
+        cerr << "Failed to create shader program" << endl;
+        glfwTerminate();
+        return -1;
+    }
 
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    // Настройка VAO
+    // Создание VAO и VBO
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Буфер вершин
     GLuint pointsVbo;
     glGenBuffers(1, &pointsVbo);
     glBindBuffer(GL_ARRAY_BUFFER, pointsVbo);
@@ -122,7 +117,6 @@ int main() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    // Буфер цветов
     GLuint colorsVbo;
     glGenBuffers(1, &colorsVbo);
     glBindBuffer(GL_ARRAY_BUFFER, colorsVbo);
@@ -130,21 +124,29 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    // Отвязать VAO
-    glBindVertexArray(0);
+    glBindVertexArray(0); // Отвязать VAO
 
     // Главный цикл
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
+        shaderProgram.use();
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    // Очистка ресурсов
+    glDeleteBuffers(1, &pointsVbo);
+    glDeleteBuffers(1, &colorsVbo);
+    glDeleteVertexArrays(1, &vao);
+
+    glfwDestroyWindow(window);
     glfwTerminate();
+
     return 0;
 }
+
