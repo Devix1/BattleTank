@@ -2,44 +2,77 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+using namespace std;
+
+int WindowWidth = 640;
+int WindowHeight = 480;
+
+void windowSixeCallBack(GLFWwindow* pWindow, int width, int height){
+    WindowWidth = width;
+    WindowHeight = WindowHeight;
+    glViewport(0, 0, WindowWidth, WindowHeight);
+}
+
+void glfwKeyCallBack(GLFWwindow* pWindow, int key, int scancode, int action, int mode){
+    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+        glfwSetWindowShouldClose(pWindow, GL_TRUE);
+    }
+}
+
 int main(void)
 {
-    GLFWwindow* window;
+   
 
-    /* Initialize the library */
-    if (!glfwInit())
+   
+    if (!glfwInit()){
+        cout<<"glfwInit failed"<<endl;
         return -1;
+    }
 
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-    if (!window)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    
+    GLFWwindow* pWindow = glfwCreateWindow(WindowWidth, WindowHeight, "Battle Tanks", nullptr, nullptr);
+    if (!pWindow)
     {
+        cout<<"glfwCreateWindow failed"<<endl;
         glfwTerminate();
         return -1;
     }
 
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
+    glfwSetWindowSizeCallback(pWindow, windowSixeCallBack);
+    glfwSetKeyCallback(pWindow, glfwKeyCallBack);
+   
+    glfwMakeContextCurrent(pWindow);
 
     if (!gladLoadGL()) {
-        std::cout << "Can`t load GLAD" << std::endl;
+        cout << "Can't load GLAD" << endl;
         return -1;
     }
 
-    std::cout << "OpenGL" << GLversion.major << "." << GLversion.minor << std::endl;
+    int major, minor;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
 
-    glClearColor(0, 1, 0, 1);
+    cout<<"Renderer"<<glGetString(GL_RENDERER) << endl;
+    cout<<"OpenGL version: "<< glGetString(GL_VERSION)<<endl;
+    cout << "OpenGL version: " << major << "." << minor << endl;
+    cout<< "Press Escape to exit" << endl;
 
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
+    glClearColor(1,1,0,1);
+    
+    
+    while (!glfwWindowShouldClose(pWindow))
     {
-        /* Render here */
+       
         glClear(GL_COLOR_BUFFER_BIT);
 
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+       
+        glfwSwapBuffers(pWindow);
 
-        /* Poll for and process events */
+       
         glfwPollEvents();
     }
 
